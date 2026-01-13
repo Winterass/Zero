@@ -48,6 +48,18 @@ export type ManagerConfig = {
     refreshToken: string;
     email: string;
   };
+  provider?: 'google' | 'microsoft' | 'imap';
+  imapConfig?: {
+    host: string;
+    port: number;
+    secure: boolean;
+    user: string;
+    password: string;
+    smtpHost: string;
+    smtpPort: number;
+    smtpSecure: boolean;
+    providerPreset?: 'outlook' | 'yahoo' | 'icloud' | 'custom';
+  };
 };
 
 export interface MailManager {
