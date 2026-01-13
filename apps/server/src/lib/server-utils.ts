@@ -574,6 +574,25 @@ export const getActiveConnection = async () => {
 };
 
 export const connectionToDriver = (activeConnection: typeof connection.$inferSelect) => {
+  if (activeConnection.providerId === 'imap') {
+    // For IMAP connections, we need the IMAP config
+    if (!activeConnection.imapConfig) {
+      throw new Error(`Invalid IMAP connection ${JSON.stringify(activeConnection?.id)} - missing imapConfig`);
+    }
+    
+    return createDriver(activeConnection.providerId, {
+      auth: {
+        userId: activeConnection.userId,
+        accessToken: '', // Not used for IMAP
+        refreshToken: '', // Not used for IMAP
+        email: activeConnection.email,
+      },
+      provider: 'imap',
+      imapConfig: activeConnection.imapConfig,
+    });
+  }
+  
+  // For OAuth providers (Google, Microsoft)
   if (!activeConnection.accessToken || !activeConnection.refreshToken) {
     throw new Error(`Invalid connection ${JSON.stringify(activeConnection?.id)}`);
   }
@@ -585,6 +604,7 @@ export const connectionToDriver = (activeConnection: typeof connection.$inferSel
       refreshToken: activeConnection.refreshToken,
       email: activeConnection.email,
     },
+    provider: activeConnection.providerId,
   });
 };
 
