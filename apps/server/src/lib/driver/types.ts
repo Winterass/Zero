@@ -48,7 +48,7 @@ export type ManagerConfig = {
     refreshToken: string;
     email: string;
   };
-  provider?: 'google' | 'microsoft' | 'imap';
+  provider?: 'imap';
   imapConfig?: {
     host: string;
     port: number;

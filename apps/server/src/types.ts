@@ -2,8 +2,6 @@ import type { Context } from 'hono';
 import { z } from 'zod';
 
 export enum EProviders {
-  'google' = 'google',
-  'microsoft' = 'microsoft',
   'imap' = 'imap',
 }
 

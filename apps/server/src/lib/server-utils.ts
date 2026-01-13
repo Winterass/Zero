@@ -574,37 +574,25 @@ export const getActiveConnection = async () => {
 };
 
 export const connectionToDriver = (activeConnection: typeof connection.$inferSelect) => {
-  if (activeConnection.providerId === 'imap') {
-    // For IMAP connections, we need the IMAP config
-    if (!activeConnection.imapConfig) {
-      throw new Error(`Invalid IMAP connection ${JSON.stringify(activeConnection?.id)} - missing imapConfig`);
-    }
-    
-    return createDriver(activeConnection.providerId, {
-      auth: {
-        userId: activeConnection.userId,
-        accessToken: '', // Not used for IMAP
-        refreshToken: '', // Not used for IMAP
-        email: activeConnection.email,
-      },
-      provider: 'imap',
-      imapConfig: activeConnection.imapConfig,
-    });
+  // Only IMAP is supported
+  if (activeConnection.providerId !== 'imap') {
+    throw new Error(`Unsupported provider: ${activeConnection.providerId}. Only IMAP is supported.`);
   }
   
-  // For OAuth providers (Google, Microsoft)
-  if (!activeConnection.accessToken || !activeConnection.refreshToken) {
-    throw new Error(`Invalid connection ${JSON.stringify(activeConnection?.id)}`);
+  // For IMAP connections, we need the IMAP config
+  if (!activeConnection.imapConfig) {
+    throw new Error(`Invalid IMAP connection ${JSON.stringify(activeConnection?.id)} - missing imapConfig`);
   }
-
-  return createDriver(activeConnection.providerId, {
+  
+  return createDriver('imap', {
     auth: {
       userId: activeConnection.userId,
-      accessToken: activeConnection.accessToken,
-      refreshToken: activeConnection.refreshToken,
+      accessToken: '', // Not used for IMAP
+      refreshToken: '', // Not used for IMAP
       email: activeConnection.email,
     },
-    provider: activeConnection.providerId,
+    provider: 'imap',
+    imapConfig: activeConnection.imapConfig,
   });
 };
 
