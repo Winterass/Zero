@@ -134,3 +134,58 @@ export const defaultUserSettings: UserSettings = {
   imageCompression: 'medium',
   animations: false,
 };
+
+// IMAP Configuration Schema
+export const imapConfigSchema = z.object({
+  host: z.string().min(1, 'IMAP host is required'),
+  port: z.number().int().min(1).max(65535),
+  secure: z.boolean().default(true),
+  user: z.string().min(1, 'Username is required'),
+  password: z.string().min(1, 'Password is required'),
+  smtpHost: z.string().min(1, 'SMTP host is required'),
+  smtpPort: z.number().int().min(1).max(65535),
+  smtpSecure: z.boolean().default(true),
+  providerPreset: z.enum(['outlook', 'yahoo', 'icloud', 'custom']).optional(),
+});
+
+export type ImapConfig = z.infer<typeof imapConfigSchema>;
+
+// Provider presets for common email providers
+export const IMAP_PROVIDER_PRESETS = {
+  outlook: {
+    name: 'Outlook / Office 365',
+    imapHost: 'outlook.office365.com',
+    imapPort: 993,
+    imapSecure: true,
+    smtpHost: 'smtp.office365.com',
+    smtpPort: 587,
+    smtpSecure: true,
+  },
+  yahoo: {
+    name: 'Yahoo Mail',
+    imapHost: 'imap.mail.yahoo.com',
+    imapPort: 993,
+    imapSecure: true,
+    smtpHost: 'smtp.mail.yahoo.com',
+    smtpPort: 587,
+    smtpSecure: true,
+  },
+  icloud: {
+    name: 'iCloud Mail',
+    imapHost: 'imap.mail.me.com',
+    imapPort: 993,
+    imapSecure: true,
+    smtpHost: 'smtp.mail.me.com',
+    smtpPort: 587,
+    smtpSecure: true,
+  },
+  custom: {
+    name: 'Custom IMAP',
+    imapHost: '',
+    imapPort: 993,
+    imapSecure: true,
+    smtpHost: '',
+    smtpPort: 587,
+    smtpSecure: true,
+  },
+} as const;

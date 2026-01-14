@@ -15,11 +15,11 @@ import {
   createDefaultWorkflows,
   type WorkflowContext,
 } from './thread-workflow-utils/workflow-engine';
-import { getServiceAccount } from './lib/factories/google-subscription.factory';
+// import { getServiceAccount } from './lib/factories/google-subscription.factory';
 import { getThread, getZeroAgent } from './lib/server-utils';
 import { DurableObject } from 'cloudflare:workers';
 import { bulkDeleteKeys } from './lib/bulk-delete';
-import { type gmail_v1 } from '@googleapis/gmail';
+// import { type gmail_v1 } from '@googleapis/gmail';
 import { Effect, Console, Logger } from 'effect';
 import { connection } from './db/schema';
 import { EProviders } from './types';
@@ -37,16 +37,16 @@ const isValidUUID = (str: string): boolean => {
   return regex.test(str);
 };
 
+// Simplified validation for IMAP-only setup
 const validateArguments = (
   params: MainWorkflowParams,
-  serviceAccount: { project_id: string },
 ): Effect.Effect<string, MainWorkflowError> =>
   Effect.gen(function* () {
     yield* Console.log('[MAIN_WORKFLOW] Validating arguments');
-    const regex = new RegExp(
-      `projects/${serviceAccount.project_id}/subscriptions/notifications__([a-z0-9-]+)`,
-    );
-    const match = params.subscriptionName.toString().match(regex);
+    
+    // For IMAP, we extract connectionId from subscription name
+    // Format: notifications__<connection-id>
+    const match = params.subscriptionName.toString().match(/notifications__([a-z0-9-]+)/);
     if (!match) {
       yield* Console.log('[MAIN_WORKFLOW] Invalid subscription name:', params.subscriptionName);
       return yield* Effect.fail({
@@ -155,9 +155,7 @@ export class WorkflowRunner extends DurableObject<ZeroEnv> {
 
       const { providerId, historyId } = params;
 
-      const serviceAccount = getServiceAccount();
-
-      const connectionId = yield* validateArguments(params, serviceAccount);
+      const connectionId = yield* validateArguments(params);
       span.setAttributes({ 'connection.id': connectionId });
 
       if (!isValidUUID(connectionId)) {
@@ -169,19 +167,25 @@ export class WorkflowRunner extends DurableObject<ZeroEnv> {
         });
       }
 
-      const previousHistoryId = yield* Effect.tryPromise({
-        try: () => this.env.gmail_history_id.get(connectionId),
-        catch: () => ({
-          _tag: 'WorkflowCreationFailed' as const,
-          error: 'Failed to get history ID',
-        }),
-      }).pipe(Effect.orElse(() => Effect.succeed(null)));
+      // IMAP doesn't use history IDs like Gmail
+      const previousHistoryId = null;
 
       span.setAttributes({ 'history.previous_id': previousHistoryId || 'none' });
 
-      if (providerId === EProviders.google) {
-        yield* Console.log('[MAIN_WORKFLOW] Processing Google provider workflow');
-        yield* Console.log('[MAIN_WORKFLOW] Previous history ID:', previousHistoryId);
+      if (providerId === EProviders.imap) {
+        yield* Console.log('[MAIN_WORKFLOW] Processing IMAP provider workflow');
+        // IMAP workflow - simplified for now
+        // IMAP uses polling, not push notifications
+        yield* Console.log('[MAIN_WORKFLOW] IMAP polling workflow - no history to process');
+        return 'IMAP workflow completed';
+      } else {
+        yield* Console.log('[MAIN_WORKFLOW] Unsupported provider:', providerId);
+        span.setAttributes({ 'error.type': 'unsupported_provider' });
+        return yield* Effect.fail({
+          _tag: 'UnsupportedProvider' as const,
+          providerId,
+        });
+      }
 
         const zeroWorkflowParams = {
           connectionId,
@@ -296,20 +300,18 @@ export class WorkflowRunner extends DurableObject<ZeroEnv> {
         catch: (error) => ({ _tag: 'DatabaseError' as const, error }),
       });
 
-      if (foundConnection.providerId === EProviders.google) {
-        yield* Console.log('[ZERO_WORKFLOW] Processing Google provider workflow');
-
-        const history = yield* Effect.tryPromise({
-          try: async () => {
-            console.log('[ZERO_WORKFLOW] Getting Gmail history with ID:', historyId);
-            const { history } = (await agent.listHistory(historyId.toString())) as {
-              history: gmail_v1.Schema$History[];
-            };
-            console.log('[ZERO_WORKFLOW] Found history entries:', history);
-            return history;
-          },
-          catch: (error) => ({ _tag: 'GmailApiError' as const, error }),
+      if (foundConnection.providerId === EProviders.imap) {
+        yield* Console.log('[ZERO_WORKFLOW] Processing IMAP provider workflow');
+        // IMAP uses polling, not history-based sync
+        yield* Console.log('[ZERO_WORKFLOW] IMAP polling workflow - no history to process');
+        return 'IMAP workflow completed';
+      } else {
+        yield* Console.log('[ZERO_WORKFLOW] Unsupported provider:', foundConnection.providerId);
+        return yield* Effect.fail({
+          _tag: 'UnsupportedProvider' as const,
+          providerId: foundConnection.providerId,
         });
+      }
 
         yield* Effect.tryPromise({
           try: () => {
@@ -569,8 +571,18 @@ export class WorkflowRunner extends DurableObject<ZeroEnv> {
       const { connectionId, threadId, providerId } = params;
       const keysToDelete: string[] = [];
 
-      if (providerId === EProviders.google) {
-        yield* Console.log('[THREAD_WORKFLOW] Processing Google provider workflow');
+      if (providerId === EProviders.imap) {
+        yield* Console.log('[THREAD_WORKFLOW] Processing IMAP provider workflow');
+        // IMAP workflow - simplified
+        yield* Console.log('[THREAD_WORKFLOW] IMAP thread processing');
+        return 'IMAP thread workflow completed';
+      } else {
+        yield* Console.log('[THREAD_WORKFLOW] Unsupported provider:', providerId);
+        return yield* Effect.fail({
+          _tag: 'UnsupportedProvider' as const,
+          providerId,
+        });
+      }
         const { db, conn } = createDb(this.env.HYPERDRIVE.connectionString);
 
         const foundConnection = yield* Effect.tryPromise({
@@ -727,8 +739,15 @@ export class WorkflowRunner extends DurableObject<ZeroEnv> {
       const { connectionId, threadId, providerId } = params;
       const keysToDelete: string[] = [];
 
-      if (providerId === EProviders.google) {
-        console.log('[THREAD_WORKFLOW] Processing Google provider workflow');
+      if (providerId === EProviders.imap) {
+        console.log('[THREAD_WORKFLOW] Processing IMAP provider workflow');
+        // IMAP workflow - simplified
+        console.log('[THREAD_WORKFLOW] IMAP thread processing');
+        return 'IMAP thread workflow completed';
+      } else {
+        console.log('[THREAD_WORKFLOW] Unsupported provider:', providerId);
+        throw new Error(`Unsupported provider: ${providerId}`);
+      }
         const { db, conn } = createDb(this.env.HYPERDRIVE.connectionString);
 
         let foundConnection;

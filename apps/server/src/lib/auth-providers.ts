@@ -26,56 +26,8 @@ export const customProviders: ProviderConfig[] = [
   // }
 ];
 
-export const authProviders = (env: Record<string, string>): ProviderConfig[] => [
-  {
-    id: 'google',
-    name: 'Google',
-    requiredEnvVars: ['GOOGLE_CLIENT_ID', 'GOOGLE_CLIENT_SECRET'],
-    envVarInfo: [
-      { name: 'GOOGLE_CLIENT_ID', source: 'Google Cloud Console' },
-      { name: 'GOOGLE_CLIENT_SECRET', source: 'Google Cloud Console' },
-    ],
-    config: {
-      prompt: env.FORCE_GOOGLE_AUTH ? 'consent' : undefined,
-      accessType: 'offline',
-      scope: [
-        'https://mail.google.com/',
-        'https://www.googleapis.com/auth/gmail.modify',
-        'https://www.googleapis.com/auth/userinfo.profile',
-        'https://www.googleapis.com/auth/userinfo.email',
-      ],
-      clientId: env.GOOGLE_CLIENT_ID,
-      clientSecret: env.GOOGLE_CLIENT_SECRET,
-    },
-    required: true,
-  },
-  //   {
-  //     id: 'microsoft',
-  //     name: 'Microsoft',
-  //     requiredEnvVars: ['MICROSOFT_CLIENT_ID', 'MICROSOFT_CLIENT_SECRET'],
-  //     envVarInfo: [
-  //       { name: 'MICROSOFT_CLIENT_ID', source: 'Microsoft Azure App ID' },
-  //       { name: 'MICROSOFT_CLIENT_SECRET', source: 'Microsoft Azure App Password' },
-  //     ],
-  //     config: {
-  //       clientId: env.MICROSOFT_CLIENT_ID,
-  //       clientSecret: env.MICROSOFT_CLIENT_SECRET,
-  //       redirectUri: env.MICROSOFT_REDIRECT_URI,
-  //       scope: [
-  //         'https://graph.microsoft.com/User.Read',
-  //         'https://graph.microsoft.com/Mail.ReadWrite',
-  //         'https://graph.microsoft.com/Mail.Send',
-  //         'offline_access',
-  //       ],
-  //       authority: 'https://login.microsoftonline.com/common',
-  //       responseType: 'code',
-  //       prompt: 'consent',
-  //       loginHint: 'email',
-  //       disableProfilePhoto: true,
-  //     },
-  //     required: false,
-  //   },
-];
+// IMAP-only configuration - no OAuth providers
+export const authProviders = (env: Record<string, string>): ProviderConfig[] => [];
 
 export function isProviderEnabled(provider: ProviderConfig, env: Record<string, string>): boolean {
   if (provider.isCustom) return true;

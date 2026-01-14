@@ -128,10 +128,22 @@ export const connection = createTable(
     accessToken: text('access_token'),
     refreshToken: text('refresh_token'),
     scope: text('scope').notNull(),
-    providerId: text('provider_id').$type<'google' | 'microsoft'>().notNull(),
+    providerId: text('provider_id').$type<'imap'>().notNull(),
     expiresAt: timestamp('expires_at').notNull(),
     createdAt: timestamp('created_at').notNull(),
     updatedAt: timestamp('updated_at').notNull(),
+    // IMAP-specific fields
+    imapConfig: jsonb('imap_config').$type<{
+      host: string;
+      port: number;
+      secure: boolean;
+      user: string;
+      password: string;
+      smtpHost: string;
+      smtpPort: number;
+      smtpSecure: boolean;
+      providerPreset?: 'outlook' | 'yahoo' | 'icloud' | 'custom';
+    }>(),
   },
   (t) => [
     unique().on(t.userId, t.email),
